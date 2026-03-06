@@ -1,0 +1,1 @@
+# Indian-Legal-AI-Assistant-using-Retrieval-Augmented-Generation-RAG-and-FAISS
