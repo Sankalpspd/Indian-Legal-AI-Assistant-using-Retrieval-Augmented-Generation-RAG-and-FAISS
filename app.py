@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.join(os.getcwd(), "src"))
+
 import streamlit as st
 from src.rag_pipeline import LegalRAG
 
