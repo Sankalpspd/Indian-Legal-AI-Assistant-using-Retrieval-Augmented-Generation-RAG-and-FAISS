@@ -16,7 +16,7 @@ def load_vectorstore():
     embeddings = HuggingFaceEmbeddings(
         model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
-    path = "faiss_index"
+    path = "vectorbase"
     if not os.path.exists(path):
         raise ValueError("FAISS index not found. Build embeddings first.")
 
