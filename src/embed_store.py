@@ -7,12 +7,16 @@ Original file is located at
     https://colab.research.google.com/drive/1qJyg2h4nWNwWL325IBL0ML94MpA3HO37
 """
 
+# src/embed_store.py
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
 import os
 
 def load_vectorstore():
-
+    """
+    Load FAISS vector store from 'vectorbase'.
+    Raises error if index not found.
+    """
     embeddings = HuggingFaceEmbeddings(
         model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
@@ -25,5 +29,4 @@ def load_vectorstore():
         embeddings,
         allow_dangerous_deserialization=True
     )
-
     return db
