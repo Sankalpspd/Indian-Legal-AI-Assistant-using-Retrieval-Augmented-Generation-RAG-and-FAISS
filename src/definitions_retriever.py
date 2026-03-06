@@ -8,6 +8,10 @@ Original file is located at
 """
 
 def detect_act(query, acts_list):
+    """
+    Detect if any Act name appears in the query.
+    Returns the first match or None.
+    """
     query_lower = query.lower()
     for act in acts_list:
         if act.lower() in query_lower:
@@ -15,7 +19,13 @@ def detect_act(query, acts_list):
     return None
 
 def prioritize_definitions(docs):
-    """Boost documents containing definitions keywords"""
+    """
+    Boost documents that contain keywords typically in legal definitions.
+    """
     keywords = ["definition", "means", "includes"]
-    boosted = sorted(docs, key=lambda d: any(k in d.page_content.lower() for k in keywords), reverse=True)
+    boosted = sorted(
+        docs,
+        key=lambda d: any(k in d.page_content.lower() for k in keywords),
+        reverse=True
+    )
     return boosted
