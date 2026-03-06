@@ -7,7 +7,7 @@ from src.citation_generator import generate_citations
 from transformers import pipeline
 
 # Initialize offline summarizer
-summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
 
 def summarize_answer(text, max_len=150, min_len=40):
     """
