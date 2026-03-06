@@ -7,20 +7,10 @@ Original file is located at
     https://colab.research.google.com/drive/1h9RoDkmfYbtbY4w8cR5oXGnMZ-Q1_BJB
 """
 
-from langchain_openai import ChatOpenAI
-
-llm = ChatOpenAI(
-    model="gpt-4o-mini",
-    api_key="your_openai_api_key_here"
-)
-
 def rewrite_query(query):
-    prompt = f"""
-Rewrite this legal question into 3 optimized search queries for a legal RAG system.
-Question: {query}
-Return the queries separated by newline.
-"""
-    response = llm.invoke(prompt)
-    queries = response.content.split("\n")
-    queries.append(query)  # include original query
-    return queries
+    """
+    Offline query rewriting:
+    Currently returns the original query as a single-item list.
+    Could add simple keyword expansion in the future.
+    """
+    return [query] queries
