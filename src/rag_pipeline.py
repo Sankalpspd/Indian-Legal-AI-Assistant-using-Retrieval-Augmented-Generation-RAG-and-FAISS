@@ -1,178 +1,82 @@
-{
- "cells": [
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "id": "16381f3d-2587-4792-9d11-461dec6bc041",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "from src.embed_store import load_vectorstore\n",
-    "from src.hybrid_search import HybridRetriever\n",
-    "from src.query_rewriter import rewrite_query\n",
-    "from src.reranker import rerank\n",
-    "from src.section_retriever import detect_act, prioritize_definitions\n",
-    "\n",
-    "from langchain_openai import ChatOpenAI\n",
-    "\n",
-    "\n",
-    "class LegalRAG:\n",
-    "\n",
-    "    def __init__(self):\n",
-    "\n",
-    "        # Load vector store\n",
-    "        self.vectorstore = load_vectorstore()\n",
-    "\n",
-    "        # Extract stored documents\n",
-    "        self.documents = list(self.vectorstore.docstore._dict.values())\n",
-    "\n",
-    "        # Hybrid retriever\n",
-    "        self.retriever = HybridRetriever(self.vectorstore, self.documents)\n",
-    "\n",
-    "        # LLM\n",
-    "        self.llm = ChatOpenAI(\n",
-    "            model=\"gpt-4o-mini\",\n",
-    "            temperature=0\n",
-    "        )\n",
-    "\n",
-    "        # List of acts in database\n",
-    "        self.acts_list = list(\n",
-    "            set([doc.metadata.get(\"act\", \"\") for doc in self.documents])\n",
-    "        )\n",
-    "\n",
-    "\n",
-    "    def answer(self, query):\n",
-    "\n",
-    "        # -----------------------------\n",
-    "        # Step 1: Detect Act\n",
-    "        # -----------------------------\n",
-    "\n",
-    "        detected_act = detect_act(query, self.acts_list)\n",
-    "\n",
-    "        filtered_docs = self.documents\n",
-    "\n",
-    "        if detected_act:\n",
-    "            filtered_docs = [\n",
-    "                doc for doc in self.documents\n",
-    "                if doc.metadata.get(\"act\", \"\").lower() == detected_act.lower()\n",
-    "            ]\n",
-    "\n",
-    "\n",
-    "        # -----------------------------\n",
-    "        # Step 2: Query rewriting\n",
-    "        # -----------------------------\n",
-    "\n",
-    "        queries = rewrite_query(query)\n",
-    "\n",
-    "\n",
-    "        # -----------------------------\n",
-    "        # Step 3: Retrieve documents\n",
-    "        # -----------------------------\n",
-    "\n",
-    "        retrieved = []\n",
-    "\n",
-    "        for q in queries:\n",
-    "\n",
-    "            results = self.retriever.search(q)\n",
-    "\n",
-    "            # Apply act filtering if detected\n",
-    "            if detected_act:\n",
-    "                results = [\n",
-    "                    doc for doc in results\n",
-    "                    if doc.metadata.get(\"act\", \"\").lower() == detected_act.lower()\n",
-    "                ]\n",
-    "\n",
-    "            retrieved.extend(results)\n",
-    "\n",
-    "\n",
-    "        # Remove duplicate documents\n",
-    "        retrieved = list({doc.page_content: doc for doc in retrieved}.values())\n",
-    "\n",
-    "\n",
-    "        # -----------------------------\n",
-    "        # Step 4: Prioritize definitions\n",
-    "        # -----------------------------\n",
-    "\n",
-    "        retrieved = prioritize_definitions(retrieved)\n",
-    "\n",
-    "\n",
-    "        # -----------------------------\n",
-    "        # Step 5: Rerank\n",
-    "        # -----------------------------\n",
-    "\n",
-    "        top_docs = rerank(query, retrieved, top_k=5)\n",
-    "\n",
-    "\n",
-    "        # -----------------------------\n",
-    "        # Step 6: Build context\n",
-    "        # -----------------------------\n",
-    "\n",
-    "        context = \"\\n\\n\".join([doc.page_content for doc in top_docs])\n",
-    "\n",
-    "\n",
-    "        prompt = f\"\"\"\n",
-    "You are a legal AI assistant for Indian law.\n",
-    "\n",
-    "Answer the user's question using ONLY the context below.\n",
-    "\n",
-    "If the answer is not present in the context, say that the information is not available.\n",
-    "\n",
-    "Context:\n",
-    "{context}\n",
-    "\n",
-    "Question:\n",
-    "{query}\n",
-    "\n",
-    "Provide a clear answer and cite the relevant Act and Section.\n",
-    "\"\"\"\n",
-    "\n",
-    "\n",
-    "        # -----------------------------\n",
-    "        # Step 7: LLM answer\n",
-    "        # -----------------------------\n",
-    "\n",
-    "        response = self.llm.invoke(prompt)\n",
-    "\n",
-    "\n",
-    "        # -----------------------------\n",
-    "        # Step 8: Generate citations\n",
-    "        # -----------------------------\n",
-    "\n",
-    "        sources = set()\n",
-    "\n",
-    "        for doc in top_docs:\n",
-    "\n",
-    "            act = doc.metadata.get(\"act\", \"\")\n",
-    "            section = doc.metadata.get(\"section\", \"\")\n",
-    "\n",
-    "            if act or section:\n",
-    "                citation = f\"{act} - Section {section}\".strip()\n",
-    "                sources.add(citation)\n",
-    "\n",
-    "\n",
-    "        return response.content, list(sources)"
-   ]
-  }
- ],
- "metadata": {
-  "kernelspec": {
-   "display_name": "Python 3 (ipykernel)",
-   "language": "python",
-   "name": "python3"
-  },
-  "language_info": {
-   "codemirror_mode": {
-    "name": "ipython",
-    "version": 3
-   },
-   "file_extension": ".py",
-   "mimetype": "text/x-python",
-   "name": "python",
-   "nbconvert_exporter": "python",
-   "pygments_lexer": "ipython3",
-   "version": "3.11.9"
-  }
- },
- "nbformat": 4,
- "nbformat_minor": 5
-}
+from src.embed_store import load_vectorstore
+from src.hybrid_search import HybridRetriever
+from src.query_rewriter import rewrite_query
+from src.citation_generator import generate_citations
+from src.definitions_retriever import prioritize_definitions
+from transformers import pipeline
+
+
+class LegalRAG:
+
+    def __init__(self):
+
+        # Load FAISS vector database
+        self.vectorstore = load_vectorstore()
+
+        # Get all stored documents
+        self.documents = list(self.vectorstore.docstore._dict.values())
+
+        # Hybrid retriever (BM25 + FAISS)
+        self.retriever = HybridRetriever(self.vectorstore, self.documents)
+
+        # Local LLM
+        self.generator = pipeline(
+            "text-generation",
+            model="google/flan-t5-base",   # lightweight model
+            max_new_tokens=300
+        )
+
+        # List of Acts for filtering
+        self.acts_list = list(set([doc.metadata.get("act", "") for doc in self.documents]))
+
+
+    def answer(self, query):
+
+        # STEP 1 — Query rewriting
+        queries = rewrite_query(query)
+
+        # STEP 2 — Retrieval
+        retrieved_docs = []
+
+        for q in queries:
+            results = self.retriever.search(q)
+            retrieved_docs.extend(results)
+
+        # Remove duplicate chunks
+        unique_docs = {doc.page_content: doc for doc in retrieved_docs}
+        retrieved_docs = list(unique_docs.values())
+
+        # STEP 3 — Prioritize legal definitions
+        retrieved_docs = prioritize_definitions(retrieved_docs)
+
+        # Take top documents
+        top_docs = retrieved_docs[:5]
+
+        # STEP 4 — Build context
+        context = "\n\n".join([doc.page_content for doc in top_docs])
+
+        prompt = f"""
+You are an AI legal assistant.
+
+Use ONLY the legal context below to answer the question.
+
+If the answer is not in the context, say you cannot find it.
+
+Context:
+{context}
+
+Question:
+{query}
+
+Answer clearly and include Act and Section references when possible.
+"""
+
+        # STEP 5 — Generate answer
+        response = self.generator(prompt)
+
+        answer = response[0]["generated_text"]
+
+        # STEP 6 — Generate citations
+        citations = generate_citations(top_docs)
+
+        return answer, citations
